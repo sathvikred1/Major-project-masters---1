@@ -1,0 +1,156 @@
+{
+  "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+  "selected_feature_file": "data/raw/Gain/beta=2/gain302.xlsx",
+  "selected_label_file": "data/raw/Gain/beta=2/ygain302.xlsx",
+  "file_sha256": {
+    "gain302.xlsx": "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
+    "ygain302.xlsx": "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef"
+  },
+  "nominal_fault_percent": 30,
+  "beta_directory": "beta=2",
+  "selection_reason": "Moderate fault prevalence with substantial counts in both classes; first listed beta value, selected before fitting. No subsampling.",
+  "feature_worksheet_shape_including_headers": [
+    4690,
+    12
+  ],
+  "feature_matrix_shape": [
+    4688,
+    12
+  ],
+  "label_matrix_shape": [
+    4688,
+    1
+  ],
+  "observations": 4688,
+  "input_features": 12,
+  "feature_names": [
+    "T01",
+    "H01",
+    "T02",
+    "H02",
+    "T11",
+    "H11",
+    "T12",
+    "H12",
+    "T21",
+    "H21",
+    "T22",
+    "H22"
+  ],
+  "target": "y (separate headerless label workbook, column A)",
+  "unique_target_values": [
+    -1,
+    1
+  ],
+  "class_distribution": {
+    "1": {
+      "name": "Normal (1)",
+      "count": 3280,
+      "percent": 69.96587030716724
+    },
+    "-1": {
+      "name": "Gain fault (-1)",
+      "count": 1408,
+      "percent": 30.034129692832767
+    }
+  },
+  "missing_values_by_feature": {
+    "T01": 0,
+    "H01": 0,
+    "T02": 0,
+    "H02": 0,
+    "T11": 0,
+    "H11": 0,
+    "T12": 0,
+    "H12": 0,
+    "T21": 0,
+    "H21": 0,
+    "T22": 0,
+    "H22": 0
+  },
+  "missing_target_values": 0,
+  "infinite_values_by_feature": {
+    "T01": 0,
+    "H01": 0,
+    "T02": 0,
+    "H02": 0,
+    "T11": 0,
+    "H11": 0,
+    "T12": 0,
+    "H12": 0,
+    "T21": 0,
+    "H21": 0,
+    "T22": 0,
+    "H22": 0
+  },
+  "duplicate_feature_rows": 0,
+  "duplicate_feature_target_rows": 0,
+  "feature_dtypes": {
+    "T01": "float64",
+    "H01": "float64",
+    "T02": "float64",
+    "H02": "float64",
+    "T11": "float64",
+    "H11": "float64",
+    "T12": "float64",
+    "H12": "float64",
+    "T21": "float64",
+    "H21": "float64",
+    "T22": "float64",
+    "H22": "float64"
+  },
+  "target_dtype": "int64",
+  "feature_ranges": {
+    "T01": {
+      "min": 26.29,
+      "max": 60.14
+    },
+    "H01": {
+      "min": 43.79,
+      "max": 111.72
+    },
+    "T02": {
+      "min": 26.41,
+      "max": 56.26
+    },
+    "H02": {
+      "min": 42.85,
+      "max": 142.2
+    },
+    "T11": {
+      "min": 26.29,
+      "max": 60.14
+    },
+    "H11": {
+      "min": 43.79,
+      "max": 111.72
+    },
+    "T12": {
+      "min": 26.41,
+      "max": 56.26
+    },
+    "H12": {
+      "min": 42.85,
+      "max": 142.2
+    },
+    "T21": {
+      "min": 26.29,
+      "max": 60.14
+    },
+    "H21": {
+      "min": 43.79,
+      "max": 111.72
+    },
+    "T22": {
+      "min": 26.41,
+      "max": 56.26
+    },
+    "H22": {
+      "min": 42.85,
+      "max": 142.2
+    }
+  },
+  "identifier_columns": [],
+  "categorical_columns": [],
+  "adjacent_rows_sharing_eight_time_window_features": 4687
+}

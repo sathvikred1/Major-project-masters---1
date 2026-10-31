@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "independent_metrics_verified": 18,
+  "required_figures_verified": 12,
+  "test_predictions_verified": 938,
+  "confusion_counts": {
+    "Random Forest": {
+      "tn": 610,
+      "fp": 1,
+      "fn": 0,
+      "tp": 327
+    },
+    "Support Vector Machine": {
+      "tn": 609,
+      "fp": 2,
+      "fn": 0,
+      "tp": 327
+    },
+    "Multilayer Perceptron": {
+      "tn": 611,
+      "fp": 0,
+      "fn": 0,
+      "tp": 327
+    }
+  },
+  "readme_and_summary_match_csv": true,
+  "no_convergence_warnings": true,
+  "split_boundary_purge_verified": true
+}

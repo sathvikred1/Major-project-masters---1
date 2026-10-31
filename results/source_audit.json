@@ -1,0 +1,23 @@
+{
+  "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+  "feature_workbooks": 60,
+  "paired_workbooks": 59,
+  "unpaired": [
+    {
+      "feature_file": "Gain/beta=6/gain108.xlsx",
+      "status": "no matching label filename"
+    }
+  ],
+  "distinct_normal_vectors_shared_with_selected_gain_30_percent": {
+    "Gain": 3280,
+    "Offset": 3272,
+    "Out of bound": 3272,
+    "Stuck-at": 3272
+  },
+  "notes": [
+    "Excel lock files (~$...) excluded.",
+    "Gain/beta=6/gain108.xlsx has no matching ygain108.xlsx in that directory; ygain106.xlsx exists. No guessed repair.",
+    "Original README describes 60 datasets; actual archive inventory is reported separately.",
+    "Shared normal vectors make naive multiclass concatenation inappropriate."
+  ]
+}
