@@ -1,0 +1,125 @@
+{
+  "dataset": {
+    "source_documentation": "https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/a36f90b55b30ba3552747430fb508735025ca80b/README.md",
+    "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+    "feature_file": "data/raw/Gain/beta=2/gain302.xlsx",
+    "label_file": "data/raw/Gain/beta=2/ygain302.xlsx",
+    "sha256": {
+      "gain302.xlsx": "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
+      "ygain302.xlsx": "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef"
+    },
+    "observations": 4688,
+    "features": [
+      "T01",
+      "H01",
+      "T02",
+      "H02",
+      "T11",
+      "H11",
+      "T12",
+      "H12",
+      "T21",
+      "H21",
+      "T22",
+      "H22"
+    ],
+    "labels": {
+      "1": "normal",
+      "-1": "gain fault (positive class)"
+    },
+    "class_counts": {
+      "1": 3280,
+      "-1": 1408
+    },
+    "missing_values": 0,
+    "infinite_values": 0,
+    "adjacent_rows_sharing_eight_measurements": 4687
+  },
+  "split": {
+    "method": "chronological 80/20 split with two rows removed before testing",
+    "train_rows": [
+      0,
+      3747
+    ],
+    "excluded_rows": [
+      3748,
+      3749
+    ],
+    "test_rows": [
+      3750,
+      4687
+    ],
+    "train_count": 3748,
+    "test_count": 938,
+    "train_class_counts": {
+      "1": 2669,
+      "-1": 1079
+    },
+    "test_class_counts": {
+      "1": 611,
+      "-1": 327
+    }
+  },
+  "models": {
+    "Random Forest": {
+      "tn": 610,
+      "fp": 1,
+      "fn": 0,
+      "tp": 327,
+      "confusion_matrix": [
+        [
+          610,
+          1
+        ],
+        [
+          0,
+          327
+        ]
+      ],
+      "warnings": []
+    },
+    "Support Vector Machine": {
+      "tn": 609,
+      "fp": 2,
+      "fn": 0,
+      "tp": 327,
+      "confusion_matrix": [
+        [
+          609,
+          2
+        ],
+        [
+          0,
+          327
+        ]
+      ],
+      "warnings": []
+    },
+    "Multilayer Perceptron": {
+      "tn": 611,
+      "fp": 0,
+      "fn": 0,
+      "tp": 327,
+      "confusion_matrix": [
+        [
+          611,
+          0
+        ],
+        [
+          0,
+          327
+        ]
+      ],
+      "warnings": []
+    }
+  },
+  "seed": 42,
+  "python": "3.14.3",
+  "packages": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "matplotlib": "3.11.2",
+    "openpyxl": "3.1.5"
+  }
+}
