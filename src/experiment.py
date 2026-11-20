@@ -11,6 +11,7 @@ os.environ.setdefault("MPLCONFIGDIR", str(ROOT / ".mplconfig"))
 os.environ.setdefault("XDG_CACHE_HOME", str(ROOT / ".mplconfig" / "cache"))
 
 import importlib.metadata
+import argparse
 import json
 import math
 import platform
@@ -41,6 +42,9 @@ RESULTS = ROOT / "results"
 FIGURES = RESULTS / "figures"
 LABELS = [1, -1]  # Confusion matrix order: normal, faulty; faulty is the positive class.
 CLASS_NAMES = ["Normal (1)", "Gain fault (-1)"]
+FEATURE_NAMES = ["T01", "H01", "T02", "H02", "T11", "H11", "T12", "H12", "T21", "H21", "T22", "H22"]
+INITIAL_METRICS = ["Model", "Accuracy", "Precision", "Recall", "F1 Score",
+                   "False Positive Rate", "False Negative Rate"]
 EXPECTED_HASHES = {
     "gain302.xlsx": "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
     "ygain302.xlsx": "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef",
@@ -55,6 +59,15 @@ METRIC_PLOTS = {
 
 def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def configure_output(initial=False):
+    """Keep the original outputs intact when producing the semester milestone."""
+    global RESULTS, FIGURES
+    RESULTS = ROOT / "results"
+    if initial:
+        RESULTS = RESULTS / "initial_experiment"
+    FIGURES = RESULTS if initial else RESULTS / "figures"
 
 
 def load_and_inspect():
@@ -72,7 +85,7 @@ def load_and_inspect():
     y = label_frame.iloc[:, 0]
     if set(y.unique()) != {-1, 1} or y.isna().any():
         raise ValueError("Expected documented binary labels -1 (fault) and 1 (normal).")
-    if x.shape[1] != 12 or not all(pd.api.types.is_numeric_dtype(dtype) for dtype in x.dtypes):
+    if list(x.columns) != FEATURE_NAMES or not all(pd.api.types.is_numeric_dtype(dtype) for dtype in x.dtypes):
         raise ValueError("Expected twelve numeric sensor features. Inspect changed source before proceeding.")
     y = y.astype(int).rename("y")
     distribution = {str(label): {"name": name, "count": int((y == label).sum()),
@@ -90,6 +103,8 @@ def load_and_inspect():
         "observations": len(x), "input_features": x.shape[1],
         "feature_names": list(x.columns), "target": "y (separate headerless label workbook, column A)",
         "unique_target_values": sorted(map(int, y.unique())), "class_distribution": distribution,
+        "source_label_meanings": {"1": "Normal", "-1": "Gain fault (positive class)"},
+        "label_documentation": f"https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/{REVISION}/README.md",
         "missing_values_by_feature": x.isna().sum().astype(int).to_dict(),
         "missing_target_values": int(y.isna().sum()),
         "infinite_values_by_feature": dict(zip(x.columns, map(int, np.isinf(x.to_numpy()).sum(axis=0)))),
@@ -272,13 +287,17 @@ def interpret(table, details):
     return observations
 
 
-def save_summary_and_readme(table, audit, split, details):
-    observations = interpret(table, details)
+def save_environment():
     environment = {"python": platform.python_version(), "platform": platform.platform(),
                    "processor": platform.processor(), "seed": SEED,
                    "thread_policy": "RF n_jobs=1; BLAS/OpenMP environment thread limits=1",
                    "packages": {d.metadata["Name"]: d.version for d in importlib.metadata.distributions()}}
     write_json(RESULTS / "environment.json", environment)
+
+
+def save_summary_and_readme(table, audit, split, details):
+    observations = interpret(table, details)
+    save_environment()
     lines = [
         "INITIAL BASELINE EXPERIMENT — measured results", "",
         f"Dataset: {audit['selected_feature_file']}", f"Labels: {audit['selected_label_file']}",
@@ -320,17 +339,146 @@ def save_summary_and_readme(table, audit, split, details):
     readme.write_text(content, encoding="utf-8")
 
 
+def save_initial_report(table, audit, split, details):
+    """Generate the short Fall 2026 report directly from the measured outputs."""
+    save_environment()
+    metrics = ["Accuracy", "Precision", "Recall", "F1 Score"]
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    positions = np.arange(len(table))
+    width = 0.19
+    for index, metric in enumerate(metrics):
+        bars = ax.bar(positions + (index - 1.5) * width, table[metric], width, label=metric)
+        ax.bar_label(bars, labels=[f"{value:.4f}" for value in table[metric]],
+                     rotation=90, padding=3, fontsize=8)
+    ax.set_xticks(positions, ["Random Forest", "Support Vector Machine", "Multilayer Perceptron"])
+    ax.set(title="Initial gain-fault experiment: chronological test set",
+           ylabel="Score (fraction)", xlabel="Model", ylim=(0, 1.20))
+    ax.legend(loc="lower center", ncol=4, framealpha=1)
+    fig.tight_layout()
+    fig.savefig(RESULTS / "model_comparison.png", dpi=180)
+    plt.close(fig)
+
+    counts = audit["class_distribution"]
+    dataset = (
+        f"The experiment uses temperature and humidity data from the public "
+        f"[Dataset for Wireless Sensor Network Fault Detection]"
+        f"(https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/{REVISION}/README.md) "
+        f"by Zidi, Moulahi, and Alaya. The selected files are `Gain/beta=2/gain302.xlsx` "
+        f"and `Gain/beta=2/ygain302.xlsx`, the nominal 30% gain-fault variant. "
+        f"The actual files contain {audit['observations']:,} observations and "
+        f"{audit['input_features']} input features: {', '.join(audit['feature_names'])}. "
+        f"These represent two temperature and two humidity readings at each of three successive time steps. "
+        f"The authors document `1 = normal` and `-1 = faulty`; in this selection, faults are gain faults. "
+        f"The verified distribution is {counts['1']['count']:,} normal and {counts['-1']['count']:,} faulty "
+        f"observations ({counts['-1']['percent']:.4f}% faulty). "
+        f"The feature workbook has two header rows; the label workbook has none. "
+        f"Feature rows and labels align, with {sum(audit['missing_values_by_feature'].values())} missing "
+        f"and {sum(audit['infinite_values_by_feature'].values())} infinite input values."
+    )
+    methodology = (
+        f"The first nominal 80% of observations are used for training and the last 20% for testing, "
+        f"in their supplied sequence. Adjacent observations share eight measurements across three-step windows, "
+        f"so a random split is avoided. Two rows at the end of the nominal training block are removed: "
+        f"zero-based rows {split['purged_indices'][0]} and {split['purged_indices'][1]}. "
+        f"Training uses rows {split['train_index_range_inclusive'][0]}–{split['train_index_range_inclusive'][1]} "
+        f"({split['train_observations']:,} observations: {split['train_class_counts']['1']:,} normal, "
+        f"{split['train_class_counts']['-1']:,} faulty). Testing uses rows "
+        f"{split['test_index_range_inclusive'][0]}–{split['test_index_range_inclusive'][1]} "
+        f"({split['test_observations']:,} observations: {split['test_class_counts']['1']:,} normal, "
+        f"{split['test_class_counts']['-1']:,} faulty). All three models use these same partitions.\n\n"
+        "Random Forest uses 100 trees and random state 42. The Support Vector Machine uses an RBF kernel "
+        "with default C=1 and gamma=scale. The Multilayer Perceptron uses hidden layers of 32 and 16 neurons, "
+        "random state 42, and at most 1,000 iterations. SVM and MLP use StandardScaler pipelines; "
+        "Random Forest uses unscaled inputs. The existing median imputer and all scalers fit only on "
+        "training data; no imputation is needed for the observed files. No hyperparameter tuning, "
+        "synthetic observations, or additional fault types are used.\n\n"
+        "Gain fault (-1) is the positive class. Accuracy is (TP+TN)/N; precision is TP/(TP+FP); "
+        "recall is TP/(TP+FN); F1 is the harmonic mean of precision and recall; "
+        "false positive rate is FP/(FP+TN); false negative rate is FN/(FN+TP)."
+    )
+    observations = "\n".join(
+        f"- {name}: accuracy {table.loc[table.Model.eq(name), 'Accuracy'].iloc[0]:.6f}, "
+        f"{d['fp']} false alarm{'s' if d['fp'] != 1 else ''} and {d['fn']} missed faults "
+        f"(TN={d['tn']}, FP={d['fp']}, FN={d['fn']}, TP={d['tp']})."
+        for name, d in details.items()
+    )
+    interpretation = (
+        f"The highest accuracy in this run was achieved by {best_names(table, 'Accuracy')}. "
+        "These scores describe only the selected gain-fault data and this later test segment. "
+        "Very high or perfect accuracy is retained as measured. One injected fault type can produce "
+        "patterns that are easy to distinguish; these results do not establish general fault-detection "
+        "performance or real-world network reliability."
+    )
+    limitations = (
+        "This preliminary experiment uses only gain faults, one selected fault percentage, and one "
+        "training/testing partition. It does not evaluate unseen sensor devices or other fault categories. "
+        "The two-row gap removes direct overlap at the boundary, but nearby time windows may remain "
+        "correlated. The files supply no device identifiers or timestamps for independent device evaluation. "
+        "Detection scores do not measure network uptime or sensor lifetime."
+    )
+    schedule = (
+        "- January 2027: Test offset, stuck-at, and out-of-bounds faults.\n"
+        "- February 2027: Compare performance across different fault percentages.\n"
+        "- March 2027: Analyze false alarms, missed faults, and model reliability.\n"
+        "- April 2027: Complete experiments, prepare graphs, analyze findings, and write the final research report."
+    )
+    objective = ("This initial experiment asks how well Random Forest, Support Vector Machine, and "
+                 "Multilayer Perceptron distinguish normal sensor readings from gain-fault readings. "
+                 "It establishes a simple baseline for the Fall 2026 semester-end progress report.")
+    comparison = markdown_table(table)
+    summary = (
+        f"# Initial experiment summary — Fall 2026\n\n{objective}\n\n{dataset}\n\n"
+        f"{methodology}\n\nAll scores below are fractions.\n\n{comparison}\n\n"
+        f"{observations}\n\n{interpretation}\n\n{limitations}\n\n"
+        f"Proposed Spring 2027 work:\n\n{schedule}\n\n"
+        "Reproduce: `python src/experiment.py --initial`, then "
+        "`python src/validate_results.py --initial --rerun` (after setup and data download).\n"
+    )
+    (RESULTS / "experiment_summary.md").write_text(summary, encoding="utf-8")
+    image_base = "../results/initial_experiment"
+    images = f"![Model comparison]({image_base}/model_comparison.png)\n\n" + "\n\n".join(
+        f"![{name} confusion matrix]({image_base}/{name.lower().replace(' ', '_')}_confusion_matrix.png)"
+        for name in details
+    )
+    report = (
+        "# Initial Sensor Fault Detection Experiment\n\n"
+        "Fall 2026 semester-end progress report — first experimental milestone\n\n"
+        f"## 1. Objective\n\n{objective}\n\n## 2. Dataset\n\n{dataset}\n\n"
+        f"## 3. Methodology\n\n{methodology}\n\n"
+        f"## 4. Results\n\nAll scores are fractions, not percentages.\n\n{comparison}\n\n"
+        f"{observations}\n\nConfusion matrix rows are actual classes and columns are predicted classes, "
+        f"ordered Normal (1), Gain fault (-1).\n\n{images}\n\n"
+        f"## 5. Initial Observations\n\n{interpretation}\n\n"
+        f"## 6. Limitations\n\n{limitations}\n\n## 7. Next Semester Plan\n\n{schedule}\n\n"
+        "This is the first semester's progress report. The final research report is planned for Spring 2027.\n"
+    )
+    reports = ROOT / "reports"
+    reports.mkdir(exist_ok=True)
+    (reports / "initial_experiment_report.md").write_text(report, encoding="utf-8")
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--initial", action="store_true",
+                        help="Save the Fall 2026 report and outputs separately, preserving the original results.")
+    args = parser.parse_args()
+    configure_output(args.initial)
     for path in (RESULTS, FIGURES, RESULTS / "classification_reports"):
         path.mkdir(parents=True, exist_ok=True)
     x, y, audit = load_and_inspect()
     # Save class distribution before fitting anything.
-    plot_class_distribution(audit)
+    if not args.initial:
+        plot_class_distribution(audit)
     train, test, split = create_split(x, y)
     table, details = evaluate_models(x, y, train, test)
-    table.to_csv(RESULTS / "model_comparison.csv", index=False)
-    make_comparison_figures(table)
-    save_summary_and_readme(table, audit, split, details)
+    if args.initial:
+        table = table[INITIAL_METRICS]
+        table.to_csv(RESULTS / "model_comparison.csv", index=False)
+        save_initial_report(table, audit, split, details)
+    else:
+        table.to_csv(RESULTS / "model_comparison.csv", index=False)
+        make_comparison_figures(table)
+        save_summary_and_readme(table, audit, split, details)
     print("\n" + table.to_string(index=False, float_format=lambda v: f"{v:.6f}"))
     print(f"\nSaved measured outputs to {RESULTS}")
 

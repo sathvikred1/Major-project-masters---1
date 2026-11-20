@@ -124,6 +124,24 @@ results/
 
 ## Running the Experiment
 
+### Fall 2026 semester-end milestone
+
+The short progress report uses the same selected gain-fault data, models, and chronological split as the original experiment. After installing the requirements, run:
+
+```bash
+python src/download_data.py
+python src/experiment.py --initial
+python src/validate_results.py --initial --rerun
+```
+
+The last command independently checks the metrics and report against the predictions and source workbooks, repeats the same experiment, and verifies identical predictions and scores (excluding timings).
+
+See the [short experiment report](reports/initial_experiment_report.md), [experiment summary](results/initial_experiment/experiment_summary.md), [comparison CSV](results/initial_experiment/model_comparison.csv), and [combined comparison chart](results/initial_experiment/model_comparison.png). Three confusion matrix images, saved predictions, dataset inspection, split assignments, model details, and validation evidence are also in `results/initial_experiment/`. Gain fault (`-1`) is the positive class; all reported scores are fractions.
+
+The `--initial` option preserves the original saved results and README result blocks. This is one preliminary Fall 2026 milestone; the short report includes the proposed Spring 2027 schedule.
+
+### Original baseline command
+
 The recorded run uses Python 3.14.3. Use Python 3.14 for the pinned package versions, and a RAR-capable extractor (`bsdtar`, `unrar`, or `7z`). macOS supplies `bsdtar`; on Linux install a RAR-capable libarchive tool, unrar or 7-Zip. On Windows install 7-Zip and add `7z` to PATH, or extract the archives manually into `data/raw/` using the paths in the data README.
 
 ```bash

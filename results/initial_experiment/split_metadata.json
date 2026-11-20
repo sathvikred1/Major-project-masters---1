@@ -1,0 +1,29 @@
+{
+  "method": "chronological nominal 80/20 holdout with two training-boundary rows purged",
+  "reason": "All adjacent rows share eight measurements; random stratification would share source time steps.",
+  "train_observations": 3748,
+  "test_observations": 938,
+  "purged_indices": [
+    3748,
+    3749
+  ],
+  "train_index_range_inclusive": [
+    0,
+    3747
+  ],
+  "test_index_range_inclusive": [
+    3750,
+    4687
+  ],
+  "train_class_counts": {
+    "1": 2669,
+    "-1": 1079
+  },
+  "test_class_counts": {
+    "1": 611,
+    "-1": 327
+  },
+  "identical_complete_vectors_shared_between_partitions": 0,
+  "seed": 42,
+  "split_is_randomized": false
+}

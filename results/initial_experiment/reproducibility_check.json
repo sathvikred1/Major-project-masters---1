@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "complete_runs_compared": 2,
+  "first_predictions_sha256": "a3e2ad15664862f7cdd0348ec793627f1d5746e5da5865bb27470679b804b7b6",
+  "second_predictions_sha256": "a3e2ad15664862f7cdd0348ec793627f1d5746e5da5865bb27470679b804b7b6",
+  "non_timing_metrics_identical": true,
+  "timings_excluded_from_equality_check": true
+}
