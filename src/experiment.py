@@ -29,27 +29,11 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 
-from download_data import REVISION, sha256
+from download_data import DATASETS, REVISION, sha256
 
 SEED = 42
 RESULTS = ROOT / "results" / "fault_comparison"
 RAW = ROOT / "data" / "raw"
-# Fix the 30% selections before fitting. Gain and offset use beta=2;
-# the other two source archives do not have beta subdirectories.
-DATASETS = {
-    "Gain": ("Gain/beta=2/gain302.xlsx", "Gain/beta=2/ygain302.xlsx",
-             "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
-             "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef"),
-    "Offset": ("Offset/beta=2/offset302.xlsx", "Offset/beta=2/y302.xlsx",
-               "be4eff486e66079fcac7bc86f12a5457b6ec898e8ec1de349e50639176190a07",
-               "d93f24dea25ca2eb2235ca58ec7701796c7bc350ee210be1975288b9c7a122d3"),
-    "Stuck-at": ("Stuck-at/stuck302.xlsx", "Stuck-at/ystuck302.xlsx",
-                 "f16cd49271a54169547742ac55715680255dc8a9a591643b4939777f14301811",
-                 "d3dcd0ae802cb68731f677a5abd11f3fa5d398c316319b6a4598ab8ad8603e0d"),
-    "Out-of-bounds": ("Out of bound/out302.xlsx", "Out of bound/yout302.xlsx",
-                      "6259fb0964780eea35de446400a02a6102423d452cb5ec7cb867a8e38e26a16b",
-                      "24f681376f7370124dce8a66643583b4795b8223c7fa20234f88429b040f29ca"),
-}
 FEATURE_NAMES = ["T01", "H01", "T02", "H02", "T11", "H11", "T12", "H12", "T21", "H21", "T22", "H22"]
 LABELS = [1, -1]  # Matrix order: normal, fault. Fault is positive.
 CLASS_NAMES = ["Normal (1)", "Fault (-1)"]

@@ -2,7 +2,7 @@
 
 Source: [Dataset for Wireless Sensor Network Fault Detection](https://github.com/tmoulahi/Dataset-for-WSN-fault-detection), revision `a36f90b55b30ba3552747430fb508735025ca80b`.
 
-Run `python src/download_data.py` to download and extract the four archives into `data/raw/`. These nominal 30% fault files were fixed before training:
+Run `python src/download_data.py` to retrieve the eight selected workbooks into `data/raw/`. The downloader uses temporary archives, extracts only the required pairs, and reuses verified workbooks on later runs. These nominal 30% fault files were fixed before training:
 
 | Fault | Feature file | Label file |
 | --- | --- | --- |
@@ -17,7 +17,7 @@ The feature workbooks have two header rows and are read with `header=1`. Label w
 
 The four datasets are altered versions of the same sensor series and share the same label sequence. They are evaluated separately; they are not concatenated or described as independent networks.
 
-Archive checksums are fixed in `src/download_data.py`; all eight workbook checksums are fixed in `src/experiment.py`. The recorded hashes and inspected contents are saved in `results/fault_comparison/experiment_details.json`.
+Archive and workbook checksums, along with the selected paths, are fixed in `src/download_data.py` and shared by the experiment. The recorded hashes and inspected contents are saved in `results/fault_comparison/experiment_details.json`.
 
 If automatic extraction is unavailable, extract the archives into `data/raw/` with a RAR-capable tool, retaining their directory names. Ignore Excel lock files beginning with `~$`.
 

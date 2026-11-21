@@ -23,7 +23,7 @@ python src/experiment.py
 python src/validate_results.py
 ```
 
-On Windows, activate with `.venv\Scripts\activate` instead. The downloader checks archive hashes and keeps raw data out of Git. The experiment also verifies the selected workbook hashes.
+On Windows, activate with `.venv\Scripts\activate` instead. The downloader verifies hashes, extracts only the eight selected workbooks, and reuses them on later runs. Downloaded archives are temporary. Raw data stay out of Git.
 
 To repeat all twelve fits and check that predictions and scores match:
 
@@ -36,6 +36,8 @@ python src/validate_results.py --rerun
 Read the [report](reports/sensor_fault_detection_report.md), [PDF](reports/sensor_fault_detection_report.pdf), or [short summary](results/fault_comparison/experiment_summary.md). The PDF is a formatted copy of the recorded results; running the experiment updates the Markdown report and result files.
 
 The three models performed well on gain, stuck-at, and out-of-bounds faults. Offset was much harder on the later test segment, with accuracy from 34.86% to 52.13% and many false alarms. The report discusses the errors and a change in the input range over time.
+
+One reason for the high scores is visible in the selected test data: normal `H22` values range from 71.01 to 73.56, while gain faults range from 138.56 to 142.20, stuck-at faults are fixed at 80, and out-of-bounds faults are fixed at 110. These clear patterns make those three cases easier to detect. Offset values (71.28 to 73.10) overlap the normal range. This describes these particular files, not the difficulty of every fault of these types.
 
 `results/fault_comparison/` contains eight files:
 
