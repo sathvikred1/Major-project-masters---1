@@ -1,0 +1,526 @@
+{
+  "selection": "Four fixed nominal 30% datasets; beta=2 for gain and offset; no beta choice for the other two.",
+  "datasets": {
+    "Gain": {
+      "dataset": {
+        "source_documentation": "https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/a36f90b55b30ba3552747430fb508735025ca80b/README.md",
+        "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+        "fault": "Gain",
+        "nominal_fault_percent": 30,
+        "feature_file": "data/raw/Gain/beta=2/gain302.xlsx",
+        "label_file": "data/raw/Gain/beta=2/ygain302.xlsx",
+        "sha256": {
+          "Gain/beta=2/gain302.xlsx": "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
+          "Gain/beta=2/ygain302.xlsx": "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef"
+        },
+        "observations": 4688,
+        "features": [
+          "T01",
+          "H01",
+          "T02",
+          "H02",
+          "T11",
+          "H11",
+          "T12",
+          "H12",
+          "T21",
+          "H21",
+          "T22",
+          "H22"
+        ],
+        "labels": {
+          "1": "normal",
+          "-1": "fault (positive class)"
+        },
+        "class_counts": {
+          "1": 3280,
+          "-1": 1408
+        },
+        "missing_values": 0,
+        "infinite_values": 0,
+        "adjacent_rows_sharing_eight_measurements": 4687
+      },
+      "split": {
+        "method": "chronological 80/20 split with two rows removed before testing",
+        "train_rows": [
+          0,
+          3747
+        ],
+        "excluded_rows": [
+          3748,
+          3749
+        ],
+        "test_rows": [
+          3750,
+          4687
+        ],
+        "train_count": 3748,
+        "test_count": 938,
+        "train_class_counts": {
+          "1": 2669,
+          "-1": 1079
+        },
+        "test_class_counts": {
+          "1": 611,
+          "-1": 327
+        },
+        "normal_T01_range": {
+          "train": [
+            26.96,
+            58.22
+          ],
+          "test": [
+            26.29,
+            26.79
+          ]
+        }
+      },
+      "models": {
+        "Random Forest": {
+          "tn": 610,
+          "fp": 1,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              610,
+              1
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Support Vector Machine": {
+          "tn": 609,
+          "fp": 2,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              609,
+              2
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Multilayer Perceptron": {
+          "tn": 611,
+          "fp": 0,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              611,
+              0
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        }
+      }
+    },
+    "Offset": {
+      "dataset": {
+        "source_documentation": "https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/a36f90b55b30ba3552747430fb508735025ca80b/README.md",
+        "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+        "fault": "Offset",
+        "nominal_fault_percent": 30,
+        "feature_file": "data/raw/Offset/beta=2/offset302.xlsx",
+        "label_file": "data/raw/Offset/beta=2/y302.xlsx",
+        "sha256": {
+          "Offset/beta=2/offset302.xlsx": "be4eff486e66079fcac7bc86f12a5457b6ec898e8ec1de349e50639176190a07",
+          "Offset/beta=2/y302.xlsx": "d93f24dea25ca2eb2235ca58ec7701796c7bc350ee210be1975288b9c7a122d3"
+        },
+        "observations": 4688,
+        "features": [
+          "T01",
+          "H01",
+          "T02",
+          "H02",
+          "T11",
+          "H11",
+          "T12",
+          "H12",
+          "T21",
+          "H21",
+          "T22",
+          "H22"
+        ],
+        "labels": {
+          "1": "normal",
+          "-1": "fault (positive class)"
+        },
+        "class_counts": {
+          "1": 3280,
+          "-1": 1408
+        },
+        "missing_values": 0,
+        "infinite_values": 0,
+        "adjacent_rows_sharing_eight_measurements": 4687
+      },
+      "split": {
+        "method": "chronological 80/20 split with two rows removed before testing",
+        "train_rows": [
+          0,
+          3747
+        ],
+        "excluded_rows": [
+          3748,
+          3749
+        ],
+        "test_rows": [
+          3750,
+          4687
+        ],
+        "train_count": 3748,
+        "test_count": 938,
+        "train_class_counts": {
+          "1": 2669,
+          "-1": 1079
+        },
+        "test_class_counts": {
+          "1": 611,
+          "-1": 327
+        },
+        "normal_T01_range": {
+          "train": [
+            26.96,
+            48.24
+          ],
+          "test": [
+            26.29,
+            26.79
+          ]
+        }
+      },
+      "models": {
+        "Random Forest": {
+          "tn": 0,
+          "fp": 611,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              0,
+              611
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Support Vector Machine": {
+          "tn": 326,
+          "fp": 285,
+          "fn": 240,
+          "tp": 87,
+          "confusion_matrix": [
+            [
+              326,
+              285
+            ],
+            [
+              240,
+              87
+            ]
+          ],
+          "warnings": []
+        },
+        "Multilayer Perceptron": {
+          "tn": 162,
+          "fp": 449,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              162,
+              449
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        }
+      }
+    },
+    "Stuck-at": {
+      "dataset": {
+        "source_documentation": "https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/a36f90b55b30ba3552747430fb508735025ca80b/README.md",
+        "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+        "fault": "Stuck-at",
+        "nominal_fault_percent": 30,
+        "feature_file": "data/raw/Stuck-at/stuck302.xlsx",
+        "label_file": "data/raw/Stuck-at/ystuck302.xlsx",
+        "sha256": {
+          "Stuck-at/stuck302.xlsx": "f16cd49271a54169547742ac55715680255dc8a9a591643b4939777f14301811",
+          "Stuck-at/ystuck302.xlsx": "d3dcd0ae802cb68731f677a5abd11f3fa5d398c316319b6a4598ab8ad8603e0d"
+        },
+        "observations": 4688,
+        "features": [
+          "T01",
+          "H01",
+          "T02",
+          "H02",
+          "T11",
+          "H11",
+          "T12",
+          "H12",
+          "T21",
+          "H21",
+          "T22",
+          "H22"
+        ],
+        "labels": {
+          "1": "normal",
+          "-1": "fault (positive class)"
+        },
+        "class_counts": {
+          "1": 3280,
+          "-1": 1408
+        },
+        "missing_values": 0,
+        "infinite_values": 0,
+        "adjacent_rows_sharing_eight_measurements": 4687
+      },
+      "split": {
+        "method": "chronological 80/20 split with two rows removed before testing",
+        "train_rows": [
+          0,
+          3747
+        ],
+        "excluded_rows": [
+          3748,
+          3749
+        ],
+        "test_rows": [
+          3750,
+          4687
+        ],
+        "train_count": 3748,
+        "test_count": 938,
+        "train_class_counts": {
+          "1": 2669,
+          "-1": 1079
+        },
+        "test_class_counts": {
+          "1": 611,
+          "-1": 327
+        },
+        "normal_T01_range": {
+          "train": [
+            26.96,
+            48.24
+          ],
+          "test": [
+            26.29,
+            26.79
+          ]
+        }
+      },
+      "models": {
+        "Random Forest": {
+          "tn": 610,
+          "fp": 1,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              610,
+              1
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Support Vector Machine": {
+          "tn": 610,
+          "fp": 1,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              610,
+              1
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Multilayer Perceptron": {
+          "tn": 611,
+          "fp": 0,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              611,
+              0
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        }
+      }
+    },
+    "Out-of-bounds": {
+      "dataset": {
+        "source_documentation": "https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/a36f90b55b30ba3552747430fb508735025ca80b/README.md",
+        "source_revision": "a36f90b55b30ba3552747430fb508735025ca80b",
+        "fault": "Out-of-bounds",
+        "nominal_fault_percent": 30,
+        "feature_file": "data/raw/Out of bound/out302.xlsx",
+        "label_file": "data/raw/Out of bound/yout302.xlsx",
+        "sha256": {
+          "Out of bound/out302.xlsx": "6259fb0964780eea35de446400a02a6102423d452cb5ec7cb867a8e38e26a16b",
+          "Out of bound/yout302.xlsx": "24f681376f7370124dce8a66643583b4795b8223c7fa20234f88429b040f29ca"
+        },
+        "observations": 4688,
+        "features": [
+          "T01",
+          "H01",
+          "T02",
+          "H02",
+          "T11",
+          "H11",
+          "T12",
+          "H12",
+          "T21",
+          "H21",
+          "T22",
+          "H22"
+        ],
+        "labels": {
+          "1": "normal",
+          "-1": "fault (positive class)"
+        },
+        "class_counts": {
+          "1": 3280,
+          "-1": 1408
+        },
+        "missing_values": 0,
+        "infinite_values": 0,
+        "adjacent_rows_sharing_eight_measurements": 4687
+      },
+      "split": {
+        "method": "chronological 80/20 split with two rows removed before testing",
+        "train_rows": [
+          0,
+          3747
+        ],
+        "excluded_rows": [
+          3748,
+          3749
+        ],
+        "test_rows": [
+          3750,
+          4687
+        ],
+        "train_count": 3748,
+        "test_count": 938,
+        "train_class_counts": {
+          "1": 2669,
+          "-1": 1079
+        },
+        "test_class_counts": {
+          "1": 611,
+          "-1": 327
+        },
+        "normal_T01_range": {
+          "train": [
+            26.96,
+            60.0
+          ],
+          "test": [
+            26.29,
+            26.79
+          ]
+        }
+      },
+      "models": {
+        "Random Forest": {
+          "tn": 610,
+          "fp": 1,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              610,
+              1
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Support Vector Machine": {
+          "tn": 609,
+          "fp": 2,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              609,
+              2
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        },
+        "Multilayer Perceptron": {
+          "tn": 611,
+          "fp": 0,
+          "fn": 0,
+          "tp": 327,
+          "confusion_matrix": [
+            [
+              611,
+              0
+            ],
+            [
+              0,
+              327
+            ]
+          ],
+          "warnings": []
+        }
+      }
+    }
+  },
+  "seed": 42,
+  "python": "3.14.3",
+  "packages": {
+    "numpy": "2.5.4",
+    "pandas": "3.1.0",
+    "scikit-learn": "1.9.1",
+    "matplotlib": "3.11.2",
+    "openpyxl": "3.1.5"
+  }
+}

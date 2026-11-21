@@ -1,4 +1,4 @@
-"""Compare three classifiers on normal and gain-fault sensor readings."""
+"""Compare three classifiers separately on four sensor-fault datasets."""
 import os
 from pathlib import Path
 
@@ -32,35 +32,48 @@ from sklearn.svm import SVC
 from download_data import REVISION, sha256
 
 SEED = 42
-RESULTS = ROOT / "results" / "initial_experiment"
-DATA = ROOT / "data" / "raw" / "Gain" / "beta=2"
-FEATURE_FILE = DATA / "gain302.xlsx"
-LABEL_FILE = DATA / "ygain302.xlsx"
-FEATURE_NAMES = ["T01", "H01", "T02", "H02", "T11", "H11", "T12", "H12", "T21", "H21", "T22", "H22"]
-LABELS = [1, -1]  # Matrix order: normal, gain fault. Gain fault is positive.
-CLASS_NAMES = ["Normal (1)", "Gain fault (-1)"]
-METRICS = ["Model", "Accuracy", "Precision", "Recall", "F1 Score", "False Positive Rate", "False Negative Rate"]
-EXPECTED_HASHES = {
-    "gain302.xlsx": "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
-    "ygain302.xlsx": "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef",
+RESULTS = ROOT / "results" / "fault_comparison"
+RAW = ROOT / "data" / "raw"
+# Fix the 30% selections before fitting. Gain and offset use beta=2;
+# the other two source archives do not have beta subdirectories.
+DATASETS = {
+    "Gain": ("Gain/beta=2/gain302.xlsx", "Gain/beta=2/ygain302.xlsx",
+             "90ad926d50595beae7e463fcc849f0a4e968de793aa033d5e25e9560f44581ac",
+             "d77d3351013cf1f4a7e98793b9f3bf907f59fec609fb715651c1ad1a8c431aef"),
+    "Offset": ("Offset/beta=2/offset302.xlsx", "Offset/beta=2/y302.xlsx",
+               "be4eff486e66079fcac7bc86f12a5457b6ec898e8ec1de349e50639176190a07",
+               "d93f24dea25ca2eb2235ca58ec7701796c7bc350ee210be1975288b9c7a122d3"),
+    "Stuck-at": ("Stuck-at/stuck302.xlsx", "Stuck-at/ystuck302.xlsx",
+                 "f16cd49271a54169547742ac55715680255dc8a9a591643b4939777f14301811",
+                 "d3dcd0ae802cb68731f677a5abd11f3fa5d398c316319b6a4598ab8ad8603e0d"),
+    "Out-of-bounds": ("Out of bound/out302.xlsx", "Out of bound/yout302.xlsx",
+                      "6259fb0964780eea35de446400a02a6102423d452cb5ec7cb867a8e38e26a16b",
+                      "24f681376f7370124dce8a66643583b4795b8223c7fa20234f88429b040f29ca"),
 }
+FEATURE_NAMES = ["T01", "H01", "T02", "H02", "T11", "H11", "T12", "H12", "T21", "H21", "T22", "H22"]
+LABELS = [1, -1]  # Matrix order: normal, fault. Fault is positive.
+CLASS_NAMES = ["Normal (1)", "Fault (-1)"]
+METRICS = ["Fault", "Model", "Accuracy", "Precision", "Recall", "F1 Score", "False Positive Rate", "False Negative Rate"]
 SOURCE = f"https://github.com/tmoulahi/Dataset-for-WSN-fault-detection/blob/{REVISION}/README.md"
 
 
-def load_and_inspect():
-    for path in (FEATURE_FILE, LABEL_FILE):
+def load_and_inspect(fault):
+    feature_name, label_name, feature_hash, label_hash = DATASETS[fault]
+    feature_file, label_file = RAW / feature_name, RAW / label_name
+    hashes = {feature_name: feature_hash, label_name: label_hash}
+    for path, digest in ((feature_file, feature_hash), (label_file, label_hash)):
         if not path.exists():
             raise FileNotFoundError(f"Missing {path}. Run python src/download_data.py first.")
-        if sha256(path) != EXPECTED_HASHES[path.name]:
+        if sha256(path) != digest:
             raise ValueError(f"Checksum mismatch: {path}")
     # The feature workbook has two header rows; the labels have none.
-    x = pd.read_excel(FEATURE_FILE, header=1)
-    labels = pd.read_excel(LABEL_FILE, header=None)
+    x = pd.read_excel(feature_file, header=1)
+    labels = pd.read_excel(label_file, header=None)
     if labels.shape != (len(x), 1):
         raise ValueError("Expected one label for every feature row.")
     y = labels.iloc[:, 0].rename("y")
     if y.isna().any() or set(y.unique()) != {-1, 1}:
-        raise ValueError("Expected labels 1 (normal) and -1 (gain fault).")
+        raise ValueError("Expected labels 1 (normal) and -1 (fault).")
     if list(x.columns) != FEATURE_NAMES or not all(pd.api.types.is_numeric_dtype(dtype) for dtype in x.dtypes):
         raise ValueError("Expected the twelve temperature and humidity columns.")
     missing = int(x.isna().sum().sum())
@@ -71,17 +84,18 @@ def load_and_inspect():
     audit = {
         "source_documentation": SOURCE,
         "source_revision": REVISION,
-        "feature_file": str(FEATURE_FILE.relative_to(ROOT)),
-        "label_file": str(LABEL_FILE.relative_to(ROOT)),
-        "sha256": EXPECTED_HASHES,
+        "fault": fault, "nominal_fault_percent": 30,
+        "feature_file": str(feature_file.relative_to(ROOT)),
+        "label_file": str(label_file.relative_to(ROOT)),
+        "sha256": hashes,
         "observations": len(x), "features": list(x.columns),
-        "labels": {"1": "normal", "-1": "gain fault (positive class)"},
+        "labels": {"1": "normal", "-1": "fault (positive class)"},
         "class_counts": {str(label): int((y == label).sum()) for label in LABELS},
         "missing_values": missing, "infinite_values": infinite,
         "adjacent_rows_sharing_eight_measurements": shared,
     }
-    print(f"Loaded {len(x):,} rows and {x.shape[1]} features; "
-          f"normal={audit['class_counts']['1']:,}, gain fault={audit['class_counts']['-1']:,}.")
+    print(f"{fault}: {len(x):,} rows, {x.shape[1]} features; "
+          f"normal={audit['class_counts']['1']:,}, faulty={audit['class_counts']['-1']:,}.")
     return x, y.astype(int), audit
 
 
@@ -102,6 +116,10 @@ def create_split(x, y):
         "train_count": len(train), "test_count": len(test),
         "train_class_counts": {str(label): int((y.iloc[train] == label).sum()) for label in LABELS},
         "test_class_counts": {str(label): int((y.iloc[test] == label).sum()) for label in LABELS},
+        "normal_T01_range": {
+            "train": list(map(float, x.iloc[train].loc[y.iloc[train].eq(1), "T01"].agg(["min", "max"]))),
+            "test": list(map(float, x.iloc[test].loc[y.iloc[test].eq(1), "T01"].agg(["min", "max"]))),
+        },
     }
     return train, test, split
 
@@ -121,9 +139,9 @@ def build_models():
     }
 
 
-def evaluate_models(x, y, train, test):
+def evaluate_models(fault, x, y, train, test):
     rows, details = [], {}
-    predictions = pd.DataFrame({"observation_index_zero_based": test, "actual_y": y.iloc[test].to_numpy()})
+    predictions = pd.DataFrame({"Fault": fault, "observation_index_zero_based": test, "actual_y": y.iloc[test].to_numpy()})
     for name, model in build_models().items():
         # Every model and its preprocessing see only the same training rows.
         with warnings.catch_warnings(record=True) as captured:
@@ -134,7 +152,7 @@ def evaluate_models(x, y, train, test):
             y.iloc[test], predicted, average="binary", pos_label=-1, zero_division=0)
         matrix = confusion_matrix(y.iloc[test], predicted, labels=LABELS)
         tn, fp, fn, tp = map(int, matrix.ravel())
-        rows.append({"Model": name, "Accuracy": accuracy_score(y.iloc[test], predicted),
+        rows.append({"Fault": fault, "Model": name, "Accuracy": accuracy_score(y.iloc[test], predicted),
                      "Precision": precision, "Recall": recall, "F1 Score": f1,
                      "False Positive Rate": fp / (fp + tn), "False Negative Rate": fn / (fn + tp)})
         slug = name.lower().replace(" ", "_")
@@ -144,137 +162,199 @@ def evaluate_models(x, y, train, test):
             print(f"{name}: {message}")
         details[name] = {"tn": tn, "fp": fp, "fn": fn, "tp": tp,
                          "confusion_matrix": matrix.tolist(), "warnings": warning_text}
-        fig, ax = plt.subplots(figsize=(6.8, 5.6))
-        ConfusionMatrixDisplay(matrix, display_labels=CLASS_NAMES).plot(
-            ax=ax, cmap="Blues", colorbar=False, values_format="d")
-        ax.set_title(name)
-        fig.tight_layout()
-        fig.savefig(RESULTS / f"{slug}_confusion_matrix.png", dpi=180)
-        plt.close(fig)
         print(f"{name}: accuracy={rows[-1]['Accuracy']:.6f}, false alarms={fp}, missed faults={fn}")
-    predictions.to_csv(RESULTS / "test_predictions.csv", index=False)
-    return pd.DataFrame(rows, columns=METRICS), details
+    return pd.DataFrame(rows, columns=METRICS), details, predictions
 
 
 def plot_comparison(table):
-    fig, ax = plt.subplots(figsize=(10, 5.5))
-    positions = np.arange(len(table))
-    width = 0.19
-    for index, metric in enumerate(["Accuracy", "Precision", "Recall", "F1 Score"]):
-        bars = ax.bar(positions + (index - 1.5) * width, table[metric], width, label=metric)
-        ax.bar_label(bars, labels=[f"{value:.4f}" for value in table[metric]], rotation=90, padding=3, fontsize=8)
-    ax.set_xticks(positions, table["Model"])
-    ax.set(title="Normal and gain-fault classification", ylabel="Score (fraction)", ylim=(0, 1.20))
-    ax.legend(loc="lower center", ncol=4, framealpha=1)
-    fig.tight_layout()
+    faults, models = list(DATASETS), list(build_models())
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8.5))
+    for ax, metric in zip(axes.flat, ["Accuracy", "Precision", "Recall", "F1 Score"]):
+        positions, width = np.arange(len(faults)), 0.24
+        for index, model in enumerate(models):
+            values = table.loc[table.Model.eq(model)].set_index("Fault").loc[faults, metric]
+            ax.bar(positions + (index - 1) * width, values, width, label=model)
+        ax.set_xticks(positions, faults)
+        ax.set(title=metric, ylabel="Score (fraction)", ylim=(0, 1.05))
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=3)
+    fig.suptitle("Normal vs fault: separate tests at the nominal 30% fault rate")
+    fig.tight_layout(rect=(0, 0.05, 1, 0.95))
     fig.savefig(RESULTS / "model_comparison.png", dpi=180)
     plt.close(fig)
+
+
+def plot_matrices(details):
+    for model in build_models():
+        fig, axes = plt.subplots(2, 2, figsize=(9, 8))
+        for ax, (fault, saved) in zip(axes.flat, details.items()):
+            matrix = np.array(saved["models"][model]["confusion_matrix"])
+            ConfusionMatrixDisplay(matrix, display_labels=CLASS_NAMES).plot(
+                ax=ax, cmap="Blues", colorbar=False, values_format="d")
+            ax.set_title(fault)
+        fig.suptitle(model)
+        fig.tight_layout(rect=(0, 0, 1, 0.96))
+        slug = model.lower().replace(" ", "_")
+        fig.savefig(RESULTS / f"{slug}_confusion_matrix.png", dpi=180)
+        plt.close(fig)
 
 
 def markdown_table(table):
     lines = ["| " + " | ".join(table.columns) + " |", "| " + " | ".join(["---"] * len(table.columns)) + " |"]
     for _, row in table.iterrows():
-        lines.append("| " + " | ".join(str(row[c]) if c == "Model" else f"{row[c]:.6f}" for c in table.columns) + " |")
+        lines.append("| " + " | ".join(str(row[c]) if c in {"Fault", "Model"} else
+                                        f"{int(row[c]):,}" if pd.api.types.is_integer_dtype(table[c]) else f"{row[c]:.6f}"
+                                        for c in table.columns) + " |")
     return "\n".join(lines)
 
 
-def write_report(table, audit, split, details):
-    counts = audit["class_counts"]
+def write_report(table, details):
+    first = next(iter(details.values()))
+    audit, split = first["dataset"], first["split"]
+    files = "\n".join(f"- {fault}: `{spec[0]}` and `{spec[1]}`." for fault, spec in DATASETS.items())
+    distribution = pd.DataFrame([
+        {"Fault": fault, "Observations": saved["dataset"]["observations"],
+         "Normal": saved["dataset"]["class_counts"]["1"], "Faulty": saved["dataset"]["class_counts"]["-1"]}
+        for fault, saved in details.items()
+    ])
     dataset = (
-        f"The data come from the [wireless sensor dataset]({SOURCE}) published by Zidi, Moulahi, and Alaya. "
-        "The selected files are `Gain/beta=2/gain302.xlsx` and `Gain/beta=2/ygain302.xlsx`. "
-        f"They contain {audit['observations']:,} observations: {counts['1']:,} normal and {counts['-1']:,} gain faults. "
-        "This is the nominal 30% fault dataset.\n\n"
+        f"The data come from the [Dataset for Wireless Sensor Network Fault Detection]({SOURCE}) "
+        "by Zidi, Moulahi, and Alaya. Four nominal 30% fault datasets were selected: gain, offset, stuck-at, "
+        "and out-of-bounds. Gain and offset use the beta=2 directory. The other two archives have no beta directories.\n\n"
+        f"{files}\n\n{markdown_table(distribution)}\n\n"
         "Each observation contains two temperature and two humidity readings at three consecutive time steps, "
         f"giving twelve features: {', '.join(audit['features'])}. "
-        "The labels are 1 for normal and -1 for gain fault. The rows match between the two files, "
-        "and there are no missing or infinite values."
+        "The source labels are 1 for normal and -1 for faulty. All four files have matching label sequences, "
+        "and no missing or infinite values. These are altered versions of the same underlying sensor series, "
+        "not four independent sensor networks."
     )
     method = (
-        "The rows were kept in their original order. Neighbouring rows share measurements, so randomly "
-        "splitting them would allow some readings to appear in both training and testing. "
-        f"The first {split['train_count']:,} rows were used for training, rows "
-        f"{split['excluded_rows'][0]} and {split['excluded_rows'][1]} were skipped, and the last "
-        f"{split['test_count']:,} rows were used for testing. Row numbers start at zero. "
-        "All three models used the same split.\n\n"
-        "Random Forest used 100 trees. SVM used an RBF kernel with C=1 and gamma=scale. "
-        "MLP used two hidden layers with 32 and 16 neurons and a maximum of 1,000 iterations. "
-        "The random state was 42 for Random Forest and MLP. SVM and MLP inputs were standardized "
-        "using only the training data. Random Forest used unscaled inputs. "
-        "Each pipeline includes a median imputer, although these files have no missing values. "
-        "No parameters were tuned.\n\n"
-        "Gain fault was treated as the positive class. A false positive is a normal reading flagged as faulty; "
-        "a false negative is a fault that the model missed."
+        "Each fault type was tested separately as normal versus faulty. The files were not pooled into one dataset. "
+        "Every model was trained again for each fault type using the same settings.\n\n"
+        "Rows stayed in their original order. Adjacent observations share measurements, so a random split would "
+        f"allow some readings to appear in training and testing. Each test used {split['train_count']:,} training rows "
+        f"(zero-based rows {split['train_rows'][0]} to {split['train_rows'][1]}), skipped rows "
+        f"{split['excluded_rows'][0]} and {split['excluded_rows'][1]}, and tested on the last {split['test_count']:,} rows "
+        f"({split['test_rows'][0]} to {split['test_rows'][1]}). The test set contained "
+        f"{split['test_class_counts']['1']} normal and {split['test_class_counts']['-1']} faulty observations "
+        "for each fault type. All twelve model/fault comparisons used these same row positions.\n\n"
+        "Random Forest used 100 trees. SVM used a radial basis function kernel with C=1 and gamma=scale. "
+        "MLP used two hidden layers of 32 and 16 neurons and a maximum of 1,000 iterations. "
+        "The random state was 42 for Random Forest and MLP. SVM and MLP inputs were standardized using only "
+        "the training data; Random Forest used unscaled inputs. The existing median imputer stayed in the "
+        "pipelines, although none of the selected files needed imputation. No parameters were tuned.\n\n"
+        "Fault (-1) was the positive class. A false positive is a normal observation flagged as faulty; "
+        "a false negative is a missed fault. Precision, recall, and F1 refer to faults. "
+        "False positive rate is FP/(FP+TN), and false negative rate is FN/(FN+TP)."
     )
-    observations = "\n".join(
-        f"- {name}: {d['fp']} false alarm{'s' if d['fp'] != 1 else ''}, {d['fn']} missed faults."
-        for name, d in details.items()
+    observations = []
+    for fault in DATASETS:
+        subset = table.loc[table.Fault.eq(fault)]
+        best_f1 = subset["F1 Score"].max()
+        winners = ", ".join(subset.loc[subset["F1 Score"].eq(best_f1), "Model"])
+        errors = "; ".join(f"{name}: {saved['fp']} false alarm{'s' if saved['fp'] != 1 else ''}, {saved['fn']} missed faults"
+                           for name, saved in details[fault]["models"].items())
+        observations.append(f"- **{fault}:** accuracy ranged from {subset.Accuracy.min():.2%} to "
+                            f"{subset.Accuracy.max():.2%}. Highest fault F1: {winners}. {errors}.")
+    observations = "\n".join(observations)
+    ranges = " ".join(
+        f"{model} accuracy ranged from {group.Accuracy.min():.2%} to {group.Accuracy.max():.2%} across the four fault types."
+        for model, group in table.groupby("Model", sort=False)
     )
-    best = ", ".join(table.loc[table.Accuracy.eq(table.Accuracy.max()), "Model"])
-    discussion = (
-        f"{best} had the highest accuracy on this test set. "
-        "The high scores suggest that the selected gain faults are easy for these models to separate "
-        "from normal readings. They do not show how the models would perform on other faults or on a different sensor network."
+    offset = details["Offset"]
+    diagnostics = (
+        f"On offset faults, Random Forest flagged all {offset['split']['test_count']} test observations as faulty, "
+        f"including all {offset['models']['Random Forest']['fp']} normal observations. "
+        f"SVM missed {offset['models']['Support Vector Machine']['fn']} faults. "
+        f"MLP had the highest offset accuracy, but still raised {offset['models']['Multilayer Perceptron']['fp']} "
+        "false alarms. All three models performed poorly on this offset test segment."
     )
+    normal_range = offset["split"]["normal_T01_range"]
+    if normal_range["test"][1] < normal_range["train"][0]:
+        diagnostics += (
+            f" A check of the first temperature feature, T01, found that normal test values "
+            f"({normal_range['test'][0]:.2f} to {normal_range['test'][1]:.2f}) were below its normal training range "
+            f"({normal_range['train'][0]:.2f} to {normal_range['train'][1]:.2f}). "
+            "This change in the later segment may contribute to the errors; it does not establish their sole cause."
+        )
     limits = (
-        "Only one gain-fault dataset, one fault percentage, and one training/test split were tested. "
-        "The experiment does not cover unseen devices or other fault types. The gap removes shared measurements "
-        "at the split boundary, but nearby observations may still be related. "
-        "Classification accuracy alone does not measure network reliability."
+        "These results use one fault percentage, one selected version of each fault, and one chronological split. "
+        "The four datasets share the same underlying sensor readings, so they do not provide independent "
+        "evidence from four networks. The two-row gap removes direct window overlap at the split boundary, "
+        "but nearby observations may still be related. The source has no device identifiers for an unseen-device test. "
+        "The results describe detection on these files, not network uptime or performance in a deployment. "
+        "The same fault percentage does not mean equal fault severity across categories. "
+        "A single split does not establish a reliable overall model ranking or statistical significance."
     )
     next_steps = (
-        "Test offset, stuck-at, and out-of-bounds faults, then compare different fault percentages. "
-        "Further work should examine false alarms and missed faults across separate time blocks and sensor devices "
-        "where suitable data are available."
+        "Compare other fault percentages and beta directories using a selection fixed before training. "
+        "Repeat the evaluation across separate time blocks, then test on other sensor devices where suitable data "
+        "are available. Keep track of missed faults as well as overall accuracy."
     )
     comparison = markdown_table(table)
     summary = (
-        "# Gain-fault experiment\n\n"
-        f"Compared Random Forest, SVM, and MLP on {audit['observations']:,} sensor observations "
-        f"({counts['1']:,} normal, {counts['-1']:,} gain faults). "
-        f"Used {split['train_count']:,} training rows and {split['test_count']:,} test rows, with a two-row gap.\n\n"
-        f"{comparison}\n\nScores are fractions; gain fault is the positive class.\n\n"
-        f"{observations}\n\n{discussion}\n\n"
-        "See [the report](../../reports/initial_experiment_report.md) for the method and limitations.\n"
+        "# Sensor fault comparison\n\n"
+        "Random Forest, SVM, and MLP were tested separately on gain, offset, stuck-at, and out-of-bounds faults "
+        "at the nominal 30% fault rate. Each test used the same chronological row positions and a two-row gap.\n\n"
+        f"{comparison}\n\nScores are fractions; fault is the positive class.\n\n{observations}\n\n{diagnostics}\n\n"
+        "See [the report](../../reports/sensor_fault_detection_report.md) for the method and limitations.\n"
     )
     (RESULTS / "experiment_summary.md").write_text(summary, encoding="utf-8")
-    image_base = "../results/initial_experiment"
+    image_base = "../results/fault_comparison"
     matrices = "\n\n".join(
-        f"![{name} confusion matrix]({image_base}/{name.lower().replace(' ', '_')}_confusion_matrix.png)"
-        for name in details
+        f"![{name} confusion matrices]({image_base}/{name.lower().replace(' ', '_')}_confusion_matrix.png)"
+        for name in build_models()
     )
     report = (
         "# Sensor Fault Detection Experiment\n\n"
-        "## Objective\n\nCompare Random Forest, SVM, and MLP to see how well they distinguish normal "
-        "sensor readings from gain faults.\n\n"
+        "## Objective\n\nCompare Random Forest, Support Vector Machine (SVM), and Multilayer Perceptron (MLP) "
+        "on gain, offset, stuck-at, and out-of-bounds faults. Each test asks whether a sensor observation is "
+        "normal or faulty. The aim is to see how the models' errors change across fault types.\n\n"
         f"## Dataset\n\n{dataset}\n\n## Method\n\n{method}\n\n"
-        f"## Results\n\nScores are fractions; gain fault is the positive class.\n\n{comparison}\n\n"
-        f"{observations}\n\n![Model comparison]({image_base}/model_comparison.png)\n\n"
-        f"The confusion matrices show actual classes in rows and predicted classes in columns.\n\n{matrices}\n\n"
-        f"## Observations\n\n{discussion}\n\n## Limitations\n\n{limits}\n\n## Next steps\n\n{next_steps}\n"
+        f"## Results\n\nScores are fractions; fault is the positive class.\n\n{comparison}\n\n"
+        f"![Model comparison]({image_base}/model_comparison.png)\n\n"
+        f"## Observations\n\n{observations}\n\n{ranges}\n\n{diagnostics}\n\n"
+        "The differences apply to the selected files and settings. High scores on an easier fault type "
+        "do not show that a model will detect other faults equally well.\n\n"
+        f"## Confusion matrices\n\nActual classes are in rows and predicted classes are in columns.\n\n{matrices}\n\n"
+        f"## Limitations\n\n{limits}\n\n## Next steps\n\n{next_steps}\n"
     )
-    reports = ROOT / "reports"
-    reports.mkdir(exist_ok=True)
-    (reports / "initial_experiment_report.md").write_text(report, encoding="utf-8")
+    (ROOT / "reports").mkdir(exist_ok=True)
+    (ROOT / "reports" / "sensor_fault_detection_report.md").write_text(report, encoding="utf-8")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    # Accept the previous command while using one output location for every run.
     parser.add_argument("--initial", action="store_true", help=argparse.SUPPRESS)
     parser.parse_args()
     RESULTS.mkdir(parents=True, exist_ok=True)
-    x, y, audit = load_and_inspect()
-    train, test, split = create_split(x, y)
-    table, models = evaluate_models(x, y, train, test)
+    tables, predictions, details = [], [], {}
+    reference_y, reference_train, reference_test = None, None, None
+    # Inspect every selected file before any fitting.
+    datasets = {fault: load_and_inspect(fault) for fault in DATASETS}
+    for fault, (x, y, audit) in datasets.items():
+        train, test, split = create_split(x, y)
+        if reference_y is None:
+            reference_y, reference_train, reference_test = y, train, test
+        else:
+            if not (np.array_equal(reference_y, y) and np.array_equal(reference_train, train)
+                    and np.array_equal(reference_test, test)):
+                raise ValueError("Expected matching labels and row positions across the four selected datasets.")
+        table, models, predicted = evaluate_models(fault, x, y, train, test)
+        tables.append(table)
+        predictions.append(predicted)
+        details[fault] = {"dataset": audit, "split": split, "models": models}
+    table = pd.concat(tables, ignore_index=True)
     table.to_csv(RESULTS / "model_comparison.csv", index=False)
+    pd.concat(predictions, ignore_index=True).to_csv(RESULTS / "test_predictions.csv", index=False)
     plot_comparison(table)
-    write_report(table, audit, split, models)
-    details = {"dataset": audit, "split": split, "models": models, "seed": SEED,
-               "python": platform.python_version(),
-               "packages": {name: importlib.metadata.version(name) for name in
-                            ("numpy", "pandas", "scikit-learn", "matplotlib", "openpyxl")}}
-    (RESULTS / "experiment_details.json").write_text(json.dumps(details, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    plot_matrices(details)
+    write_report(table, details)
+    record = {"selection": "Four fixed nominal 30% datasets; beta=2 for gain and offset; no beta choice for the other two.",
+              "datasets": details, "seed": SEED, "python": platform.python_version(),
+              "packages": {name: importlib.metadata.version(name) for name in
+                           ("numpy", "pandas", "scikit-learn", "matplotlib", "openpyxl")}}
+    (RESULTS / "experiment_details.json").write_text(json.dumps(record, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(f"Results saved to {RESULTS.relative_to(ROOT)}")
 
 

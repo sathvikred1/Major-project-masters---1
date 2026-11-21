@@ -1,12 +1,14 @@
 # Machine Learning-Based Fault Detection and Reliability Analysis in IoT Sensor Networks
 
-This project compares Random Forest, Support Vector Machine, and Multilayer Perceptron for detecting faulty sensor readings. The current experiment uses temperature and humidity data with injected gain faults.
+This experiment compares Random Forest, Support Vector Machine, and Multilayer Perceptron on four sensor faults: gain, offset, stuck-at, and out-of-bounds. Each fault type is tested separately as normal versus faulty.
 
 ## Data and method
 
-The data come from the [Dataset for Wireless Sensor Network Fault Detection](https://github.com/tmoulahi/Dataset-for-WSN-fault-detection) by Zidi, Moulahi, and Alaya. The selected pair is `Gain/beta=2/gain302.xlsx` and `ygain302.xlsx`: 4,688 observations with twelve features, including 3,280 normal readings and 1,408 gain faults. Labels are `1 = normal` and `-1 = gain fault`.
+The [Dataset for Wireless Sensor Network Fault Detection](https://github.com/tmoulahi/Dataset-for-WSN-fault-detection) by Zidi, Moulahi, and Alaya provides temperature and humidity readings with injected faults. The experiment uses four fixed nominal 30% fault files. Gain and offset use beta=2; the other archives have no beta directories. See [data/README.md](data/README.md) for the exact files.
 
-The rows stay in their original order. Training uses the first 3,748 rows and testing uses the last 938, with two rows skipped between them because neighbouring observations share measurements. SVM and MLP inputs are standardized using only the training data. All three models use the same split, with no parameter tuning.
+Each selected pair has 4,688 observations and twelve features: 3,280 normal and 1,408 faulty. These are versions of the same sensor series, not four independent networks. The files are evaluated separately rather than pooled.
+
+All twelve model/fault comparisons use the first 3,748 rows for training and the last 938 for testing. Two rows are skipped at the boundary because neighbouring observations share measurements. SVM and MLP inputs are standardized using only training data. The model settings are fixed, with no tuning.
 
 ## Run
 
@@ -21,9 +23,9 @@ python src/experiment.py
 python src/validate_results.py
 ```
 
-On Windows, activate with `.venv\Scripts\activate` instead. The downloader checks file hashes and keeps raw data out of Git. See [data/README.md](data/README.md) for the source and file format.
+On Windows, activate with `.venv\Scripts\activate` instead. The downloader checks archive hashes and keeps raw data out of Git. The experiment also verifies the selected workbook hashes.
 
-To repeat the experiment and check that predictions and scores match:
+To repeat all twelve fits and check that predictions and scores match:
 
 ```bash
 python src/validate_results.py --rerun
@@ -31,16 +33,16 @@ python src/validate_results.py --rerun
 
 ## Results
 
-Read the [experiment report](reports/initial_experiment_report.md) for the method, results, and limitations. The [short summary](results/initial_experiment/experiment_summary.md) gives the scores and error counts.
+Read the [report](reports/sensor_fault_detection_report.md), [PDF](reports/sensor_fault_detection_report.pdf), or [short summary](results/fault_comparison/experiment_summary.md). The PDF is a formatted copy of the recorded results; running the experiment updates the Markdown report and result files.
 
-Everything from a run is saved in `results/initial_experiment/`:
+The three models performed well on gain, stuck-at, and out-of-bounds faults. Offset was much harder on the later test segment, with accuracy from 34.86% to 52.13% and many false alarms. The report discusses the errors and a change in the input range over time.
 
-- `model_comparison.csv` and `model_comparison.png`: the six metrics and a comparison chart.
-- Three confusion matrix images, one for each model.
-- `experiment_summary.md`: a short explanation of the results.
-- `test_predictions.csv`: the actual labels and each model's predictions.
-- `experiment_details.json`: dataset checks, split boundaries, error counts, and package versions.
+`results/fault_comparison/` contains eight files:
 
-Running the experiment replaces these outputs and updates the report. There is one set of results; earlier versions remain in Git history.
+- `model_comparison.csv` and `model_comparison.png`: all twelve comparisons and a chart.
+- Three confusion matrix sheets, one per model, each showing all four fault types.
+- `experiment_summary.md`: scores and a short interpretation.
+- `test_predictions.csv`: labels and predictions, identified by fault type and source row.
+- `experiment_details.json`: source hashes, dataset checks, splits, error counts, and package versions.
 
-The current results cover one gain-fault dataset and one split. Further work will compare other faults and fault percentages, with closer attention to false alarms and missed faults.
+This comparison replaces the earlier gain-only experiment. Earlier results remain in Git history. One fault percentage and one chronological split cannot establish a general ranking or statistically significant model differences.

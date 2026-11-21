@@ -1,4 +1,4 @@
-"""Download and verify the gain-fault data."""
+"""Download and verify the four sensor-fault archives."""
 import hashlib
 from pathlib import Path
 import shutil
@@ -12,6 +12,9 @@ REVISION = "a36f90b55b30ba3552747430fb508735025ca80b"
 BASE = f"https://raw.githubusercontent.com/tmoulahi/Dataset-for-WSN-fault-detection/{REVISION}/"
 ARCHIVES = {
     "Gain.rar": "59737c45290f22ee527fbdc2ecfec35bf8ff62b5446bb318e31b9a4f5385b191",
+    "Offset.rar": "9cc0ffd12e797e27bd9c0b66b9e127148f32c28d3519bedeb565428fa705c1b7",
+    "Stuck-at.rar": "7dc6857998201b3a627ce05a04bc14b3f730dd220fe301749269eed0120c6384",
+    "Out of bound.rar": "3393f95dffa3b3d10694b2b6f8620a9e04cc9f78d24391fc208be0b0e72fda52",
 }
 
 
