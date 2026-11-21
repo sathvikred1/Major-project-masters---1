@@ -28,7 +28,7 @@ Each fault type was tested separately as normal versus faulty. The files were no
 
 Rows stayed in their original order. Adjacent observations share measurements, so a random split would allow some readings to appear in training and testing. Each test used 3,748 training rows (zero-based rows 0 to 3747), skipped rows 3748 and 3749, and tested on the last 938 rows (3750 to 4687). The test set contained 611 normal and 327 faulty observations for each fault type. All twelve model/fault comparisons used these same row positions.
 
-Random Forest used 100 trees. SVM used a radial basis function kernel with C=1 and gamma=scale. MLP used two hidden layers of 32 and 16 neurons and a maximum of 1,000 iterations. The random state was 42 for Random Forest and MLP. SVM and MLP inputs were standardized using only the training data; Random Forest used unscaled inputs. The existing median imputer stayed in the pipelines, although none of the selected files needed imputation. No parameters were tuned.
+Random Forest used 100 trees. SVM used a radial basis function kernel with C=1 and gamma=scale. MLP used two hidden layers of 32 and 16 neurons and a maximum of 1,000 iterations. The random state was 42 for Random Forest and MLP. SVM and MLP inputs were standardized using only the training data; Random Forest used unscaled inputs. Each pipeline included a median imputer, although none of the selected files needed imputation. No parameters were tuned.
 
 Fault (-1) was the positive class. A false positive is a normal observation flagged as faulty; a false negative is a missed fault. Precision, recall, and F1 refer to faults. False positive rate is FP/(FP+TN), and false negative rate is FN/(FN+TP).
 
@@ -55,12 +55,25 @@ Scores are fractions; fault is the positive class.
 
 ## Observations
 
-- **Gain:** accuracy ranged from 99.79% to 100.00%. Highest fault F1: Multilayer Perceptron. Random Forest: 1 false alarm, 0 missed faults; Support Vector Machine: 2 false alarms, 0 missed faults; Multilayer Perceptron: 0 false alarms, 0 missed faults.
-- **Offset:** accuracy ranged from 34.86% to 52.13%. Highest fault F1: Multilayer Perceptron. Random Forest: 611 false alarms, 0 missed faults; Support Vector Machine: 285 false alarms, 240 missed faults; Multilayer Perceptron: 449 false alarms, 0 missed faults.
-- **Stuck-at:** accuracy ranged from 99.89% to 100.00%. Highest fault F1: Multilayer Perceptron. Random Forest: 1 false alarm, 0 missed faults; Support Vector Machine: 1 false alarm, 0 missed faults; Multilayer Perceptron: 0 false alarms, 0 missed faults.
-- **Out-of-bounds:** accuracy ranged from 99.79% to 100.00%. Highest fault F1: Multilayer Perceptron. Random Forest: 1 false alarm, 0 missed faults; Support Vector Machine: 2 false alarms, 0 missed faults; Multilayer Perceptron: 0 false alarms, 0 missed faults.
+- **Gain:** accuracy ranged from 99.79% to 100.00%.
+- **Offset:** accuracy ranged from 34.86% to 52.13%.
+- **Stuck-at:** accuracy ranged from 99.89% to 100.00%.
+- **Out-of-bounds:** accuracy ranged from 99.79% to 100.00%.
 
-Random Forest accuracy ranged from 34.86% to 99.89% across the four fault types. Support Vector Machine accuracy ranged from 44.03% to 99.89% across the four fault types. Multilayer Perceptron accuracy ranged from 52.13% to 100.00% across the four fault types.
+## Why three fault types have high accuracy
+
+The selected gain, stuck-at, and out-of-bounds faults leave clear patterns in the sensor inputs. For example, H22 is a humidity feature. Its normal and faulty values in the test set were:
+
+| Fault | Normal H22 | Faulty H22 |
+| --- | --- | --- |
+| Gain | 71.01 to 73.56 | 138.56 to 142.20 |
+| Offset | 71.01 to 73.56 | 71.28 to 73.10 |
+| Stuck-at | 71.01 to 73.56 | 80.00 (constant) |
+| Out-of-bounds | 71.01 to 73.56 | 110.00 (constant) |
+
+Gain, stuck-at, and out-of-bounds faults do not overlap the normal H22 range in these test files. These distinct patterns help explain why different models can all achieve very high accuracy. Offset values overlap the normal range, making that case less straightforward. This range check describes the held-out readings; it was not used to choose model settings or input features. Faults with values closer to normal may be harder to detect.
+
+## Offset errors
 
 On offset faults, Random Forest flagged all 938 test observations as faulty, including all 611 normal observations. SVM missed 240 faults. MLP had the highest offset accuracy, but still raised 449 false alarms. All three models performed poorly on this offset test segment. A check of the first temperature feature, T01, found that normal test values (26.29 to 26.79) were below its normal training range (26.96 to 48.24). This change in the later segment may contribute to the errors; it does not establish their sole cause.
 

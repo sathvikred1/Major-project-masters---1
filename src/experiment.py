@@ -104,6 +104,10 @@ def create_split(x, y):
             "train": list(map(float, x.iloc[train].loc[y.iloc[train].eq(1), "T01"].agg(["min", "max"]))),
             "test": list(map(float, x.iloc[test].loc[y.iloc[test].eq(1), "T01"].agg(["min", "max"]))),
         },
+        "test_H22_ranges": {
+            str(label): list(map(float, x.iloc[test].loc[y.iloc[test].eq(label), "H22"].agg(["min", "max"])))
+            for label in LABELS
+        },
     }
     return train, test, split
 
@@ -186,7 +190,7 @@ def plot_matrices(details):
 def markdown_table(table):
     lines = ["| " + " | ".join(table.columns) + " |", "| " + " | ".join(["---"] * len(table.columns)) + " |"]
     for _, row in table.iterrows():
-        lines.append("| " + " | ".join(str(row[c]) if c in {"Fault", "Model"} else
+        lines.append("| " + " | ".join(str(row[c]) if isinstance(row[c], str) else
                                         f"{int(row[c]):,}" if pd.api.types.is_integer_dtype(table[c]) else f"{row[c]:.6f}"
                                         for c in table.columns) + " |")
     return "\n".join(lines)
@@ -225,8 +229,8 @@ def write_report(table, details):
         "Random Forest used 100 trees. SVM used a radial basis function kernel with C=1 and gamma=scale. "
         "MLP used two hidden layers of 32 and 16 neurons and a maximum of 1,000 iterations. "
         "The random state was 42 for Random Forest and MLP. SVM and MLP inputs were standardized using only "
-        "the training data; Random Forest used unscaled inputs. The existing median imputer stayed in the "
-        "pipelines, although none of the selected files needed imputation. No parameters were tuned.\n\n"
+        "the training data; Random Forest used unscaled inputs. Each pipeline included a median imputer, "
+        "although none of the selected files needed imputation. No parameters were tuned.\n\n"
         "Fault (-1) was the positive class. A false positive is a normal observation flagged as faulty; "
         "a false negative is a missed fault. Precision, recall, and F1 refer to faults. "
         "False positive rate is FP/(FP+TN), and false negative rate is FN/(FN+TP)."
@@ -234,16 +238,26 @@ def write_report(table, details):
     observations = []
     for fault in DATASETS:
         subset = table.loc[table.Fault.eq(fault)]
-        best_f1 = subset["F1 Score"].max()
-        winners = ", ".join(subset.loc[subset["F1 Score"].eq(best_f1), "Model"])
-        errors = "; ".join(f"{name}: {saved['fp']} false alarm{'s' if saved['fp'] != 1 else ''}, {saved['fn']} missed faults"
-                           for name, saved in details[fault]["models"].items())
         observations.append(f"- **{fault}:** accuracy ranged from {subset.Accuracy.min():.2%} to "
-                            f"{subset.Accuracy.max():.2%}. Highest fault F1: {winners}. {errors}.")
+                            f"{subset.Accuracy.max():.2%}.")
     observations = "\n".join(observations)
-    ranges = " ".join(
-        f"{model} accuracy ranged from {group.Accuracy.min():.2%} to {group.Accuracy.max():.2%} across the four fault types."
-        for model, group in table.groupby("Model", sort=False)
+    def display_range(values):
+        low, high = values
+        return f"{low:.2f} (constant)" if low == high else f"{low:.2f} to {high:.2f}"
+    h22_table = pd.DataFrame([
+        {"Fault": fault, "Normal H22": display_range(saved["split"]["test_H22_ranges"]["1"]),
+         "Faulty H22": display_range(saved["split"]["test_H22_ranges"]["-1"])}
+        for fault, saved in details.items()
+    ])
+    high_scores = (
+        "The selected gain, stuck-at, and out-of-bounds faults leave clear patterns in the sensor inputs. "
+        "For example, H22 is a humidity feature. Its normal and faulty values in the test set were:\n\n"
+        f"{markdown_table(h22_table)}\n\n"
+        "Gain, stuck-at, and out-of-bounds faults do not overlap the normal H22 range in these test files. "
+        "These distinct patterns help explain why different models can all achieve very high accuracy. "
+        "Offset values overlap the normal range, making that case less straightforward. "
+        "This range check describes the held-out readings; it was not used to choose model settings or input features. "
+        "Faults with values closer to normal may be harder to detect."
     )
     offset = details["Offset"]
     diagnostics = (
@@ -280,7 +294,8 @@ def write_report(table, details):
         "# Sensor fault comparison\n\n"
         "Random Forest, SVM, and MLP were tested separately on gain, offset, stuck-at, and out-of-bounds faults "
         "at the nominal 30% fault rate. Each test used the same chronological row positions and a two-row gap.\n\n"
-        f"{comparison}\n\nScores are fractions; fault is the positive class.\n\n{observations}\n\n{diagnostics}\n\n"
+        f"{comparison}\n\nScores are fractions; fault is the positive class.\n\n{observations}\n\n"
+        f"{high_scores}\n\n{diagnostics}\n\n"
         "See [the report](../../reports/sensor_fault_detection_report.md) for the method and limitations.\n"
     )
     (RESULTS / "experiment_summary.md").write_text(summary, encoding="utf-8")
@@ -297,7 +312,9 @@ def write_report(table, details):
         f"## Dataset\n\n{dataset}\n\n## Method\n\n{method}\n\n"
         f"## Results\n\nScores are fractions; fault is the positive class.\n\n{comparison}\n\n"
         f"![Model comparison]({image_base}/model_comparison.png)\n\n"
-        f"## Observations\n\n{observations}\n\n{ranges}\n\n{diagnostics}\n\n"
+        f"## Observations\n\n{observations}\n\n"
+        f"## Why three fault types have high accuracy\n\n{high_scores}\n\n"
+        f"## Offset errors\n\n{diagnostics}\n\n"
         "The differences apply to the selected files and settings. High scores on an easier fault type "
         "do not show that a model will detect other faults equally well.\n\n"
         f"## Confusion matrices\n\nActual classes are in rows and predicted classes are in columns.\n\n{matrices}\n\n"
